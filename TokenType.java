@@ -1,0 +1,11 @@
+public enum TokenType{
+		
+	LITERAL,
+	NEGATION,
+	CONJUNCTION,
+	DISJUNCTION,
+	CONDITIONAL,
+	BICONDITIONAL,
+	EOL;
+		
+}
