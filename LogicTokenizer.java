@@ -1,428 +1,242 @@
 import java.util.ArrayDeque;
-import java.util.Arrays;
-
-/*
- * InfixCalculator
- *
- * Version 1.0
- * 
- * Copyright Adeeb Sheikh, 2015
- * 
- * Course: CSC172 Spring 2015
- * 
- * Assignment: Project02
- * 
- * Author: Adeeb Sheikh
- * 
- * Lab Session: MW 6:15 - 7:30
- * 
- * Lab TA: Gabriel Morales
- * 
- * Last Revised: 4 March 2015
- */
 
 public class LogicTokenizer{
+
+	private String string;
+	private ArrayDeque<String> tokens;
+	private String sval;
+	private TokenType ttype;
 	
-	ArrayDeque<String> tokens;
-	ArrayDeque<Integer> tokenTypes;
-	String s;
-	public String cval;
-	public enum TT{
+	public LogicTokenizer(String string){
 		
-		TT_OPERAND, 
-		TT_OPERATOR, 
-		TT_NEGATION, 
-		TT_lPARENTHESIS, 
-		TT_rPARENTHESIS,
-		TT_NULL;
-		
-	}
-	public TT ttype;
-	
-	public LogicTokenizer(String s){
-		
-		this.s = s;
-		
+		string = string.replaceAll("\\s+","");
+		this.string = string;
 		tokens = new ArrayDeque<String>();
-		tokenTypes = new ArrayDeque<Integer>();
-		
-		createTokens();
+		tokenize();
 		
 	}
 	
-	public void createTokens(){
+	private void tokenize(){
 		
-		String operands = "0123456789abcdefghijklmnopqrstuvwxyz";
-		String operators = "!()&&||-><>|-|=";
+		String possibleLiteralChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-_,.";
+		String current = "";
+		TokenType currentType = TokenType.EOL;
+		TokenType prevType = TokenType.EOL;
+		int numParentheses = 0;
 		
-		String token = "";
-		
-		boolean isOperand = false;
-		boolean isOperator = false;
-		
-		TT tempTT;
-		tempTT = TT_NULL;
-		
-		TT[] comp1 = {TT_OPERAND, TT_OPERATOR, TT_OPERAND};
-		TT[] comp2 = {TT_rPARENTHESIS, TT_CHAR, TT_NUMBER};
-		TT[] comp3 = {TT_WORD, TT_CHAR, TT_NUMBER};
-		TT[] comp4 = {TT_NUMBER, TT_CHAR, TT_WORD};
-		TT[] comp5 = {TT_rPARENTHESIS, TT_CHAR, TT_WORD};
-		TT[] comp6 = {TT_WORD, TT_CHAR, TT_WORD};
-		TT[] comp7 = {TT_NUMBER, TT_CHAR, TT_lPARENTHESIS};
-		TT[] comp8 = {TT_rPARENTHESIS, TT_CHAR, TT_lPARENTHESIS};
-		TT[] comp9 = {TT_WORD, TT_CHAR, TT_lPARENTHESIS};
-		TT[] cont = {-1, -1, -1};
-		
-		for(int i = 0; i < s.length(); i++){
+		for(int i = 0; i < string.length(); i++){
 			
-			char temp = s.charAt(i);
-			
-			if(operands.contains(Character.toString(temp))){
+			char currentChar = string.charAt(i);
+			//Ends a literal
+			if(!possibleLiteralChars.contains(Character.toString(currentChar)) && currentType == TokenType.LITERAL){
 				
-				if(isNumber)
-					token = token + temp;
-				else{
-					
-					isWord = false;
-					isNumber = true;
-					
-					if(!token.equals("")){
-						
-						tokens.enqueue(token);
-						
-						if(operands.contains(Character.toString(token.charAt(0)))){
-							
-							tokenTypes.enqueue(TT_NUMBER);
-							
-							tempTT = TT_NUMBER;
-							
-						}
-						else if(functions.contains(Character.toString(token.charAt(0)))){
-							
-							tokenTypes.enqueue(TT_WORD);
-						
-							tempTT = TT_WORD;
-							
-						}
-						else if(token.equals("(")){
-						
-							tokenTypes.enqueue(TT_lPARENTHESIS);
-						
-							tempTT = TT_lPARENTHESIS;
-							
-						}
-						else if(token.equals(")")){
-							
-							tokenTypes.enqueue(TT_rPARENTHESIS);
-						
-							tempTT = TT_rPARENTHESIS;
-							
-						}
-						else{
-						
-							tokenTypes.enqueue(TT_CHAR);
-						
-							tempTT = TT_CHAR;
-							
-						}
-						
-						cont[0] = cont[1];
-						cont[1] = cont[2];
-						cont[2] = tempTT;
-						
-					}
-					
-					token = Character.toString(temp);
-					
-					if(isNegative){
-						
-						cont[0] = cont[1];
-						cont[1] = cont[2];
-						cont[2] = TT_NUMBER;
-						
-						if(!Arrays.equals(cont, comp1) && !Arrays.equals(cont, comp2) && !Arrays.equals(cont, comp3)){
-							
-							tokens.enqueue("-1.0");
-							tokenTypes.enqueue(TT_NUMBER);
-							tokens.enqueue("*");
-							tokenTypes.enqueue(TT_CHAR);
-							
-						}
-						else{
-							
-							tokens.enqueue("-");
-							tokenTypes.enqueue(TT_CHAR);
-							
-						}
-						
-						isNegative = false;
-						
-					}
-					
-				}
-			}
-			else if(functions.contains(Character.toString(temp))){
-					
-				if(isWord)
-					token = token + temp;
-				else{
-						
-					isNumber = false;
-					isWord = true;
-						
-					if(!token.equals("")){
-						
-						tokens.enqueue(token);
-						
-						if(operands.contains(Character.toString(token.charAt(0)))){
-							
-							tokenTypes.enqueue(TT_NUMBER);
-							
-							tempTT = TT_NUMBER;
-							
-						}
-						else if(functions.contains(Character.toString(token.charAt(0)))){
-							
-							tokenTypes.enqueue(TT_WORD);
-						
-							tempTT = TT_WORD;
-							
-						}
-						else if(token.equals("(")){
-						
-							tokenTypes.enqueue(TT_lPARENTHESIS);
-						
-							tempTT = TT_lPARENTHESIS;
-							
-						}
-						else if(token.equals(")")){
-						
-							tokenTypes.enqueue(TT_rPARENTHESIS);
-						
-							tempTT = TT_rPARENTHESIS;
-							
-						}
-						else{
-						
-							tokenTypes.enqueue(TT_CHAR);
-						
-							tempTT = TT_CHAR;
-							
-						}
-						
-						cont[0] = cont[1];
-						cont[1] = cont[2];
-						cont[2] = tempTT;
-						
-					}
-					
-					token = Character.toString(temp);
-					
-					if(isNegative){
-						
-						cont[0] = cont[1];
-						cont[1] = cont[2];
-						cont[2] = TT_WORD;
-						
-						if(!Arrays.equals(cont, comp4) && !Arrays.equals(cont, comp5) && !Arrays.equals(cont, comp6)){
-							
-							tokens.enqueue("-1.0");
-							tokenTypes.enqueue(TT_NUMBER);
-							tokens.enqueue("*");
-							tokenTypes.enqueue(TT_CHAR);
-							
-						}
-						else{
-							
-							tokens.enqueue("-");
-							tokenTypes.enqueue(TT_CHAR);
-							
-						}
-						
-						isNegative = false;
-						
-					}
-						
-				}
+				tokens.addLast(current.intern());
+				current = "";
+				prevType = TokenType.LITERAL;
+				currentType = TokenType.EOL;
 				
 			}
-			else{
-				
-				isNumber = false;
-				isWord = false;
-					
-				if(!token.equals("")){
-					
-					tokens.enqueue(token);
-					
-					if(operands.contains(Character.toString(token.charAt(0)))){
+			boolean error = false;
+			
+			switch(currentChar){
+				case '~':
+					if(prevType != TokenType.LITERAL && prevType != TokenType.rPARENTHESIS && current.equals("")){
 						
-						tokenTypes.enqueue(TT_NUMBER);
-						
-						tempTT = TT_NUMBER;
+						tokens.addLast(Character.toString(currentChar).intern());
+						prevType = TokenType.NEGATION;
 						
 					}
-					else if(functions.contains(Character.toString(token.charAt(0)))){
+					else
+						error = true;
+					break;
+				case '&':
+				case '|':
+					if((prevType == TokenType.LITERAL || prevType == TokenType.rPARENTHESIS) && current.equals("")){
 						
-						tokenTypes.enqueue(TT_WORD);
-					
-						tempTT = TT_WORD;
-						
-					}
-					else if(token.equals("(")){
-						
-						tokenTypes.enqueue(TT_lPARENTHESIS);
-					
-						tempTT = TT_lPARENTHESIS;
-						
-					}
-					else if(token.equals(")")){
-					
-						tokenTypes.enqueue(TT_rPARENTHESIS);
-					
-						tempTT = TT_rPARENTHESIS;
+						tokens.addLast(Character.toString(currentChar).intern());
+						if(currentChar == '&')
+							prevType = TokenType.CONJUNCTION;
+						else
+							prevType = TokenType.DISJUNCTION;
 						
 					}
-					else{
-					
-						tokenTypes.enqueue(TT_CHAR);
-					
-						tempTT = TT_CHAR;
+					else
+						error = true;
+					break;
+				case '<':
+					if(prevType == TokenType.LITERAL || prevType == TokenType.rPARENTHESIS){
 						
-					}
-					
-					cont[0] = cont[1];
-					cont[1] = cont[2];
-					cont[2] = tempTT;
-					
-				}
-				
-				token = Character.toString(temp);
-				
-				if(token.equals("-")){
-					
-					if(!isNegative){
-					
-						isNegative = true;
-					
-						token = "";
-					
-						cont[0] = cont[1];
-						cont[1] = cont[2];
-						cont[2] = TT_CHAR;
-					
-					}
-					else{
-						
-						tokens.enqueue(token);
-						tokenTypes.enqueue(TT_CHAR);
-						
-						token = "";
-						
-						cont[0] = cont[1];
-						cont[1] = cont[2];
-						cont[2] = TT_CHAR;
-						
-					}
-					
-				}
-				else if(token.equals("(")){
-					
-					if(isNegative){
-						
-						cont[0] = cont[1];
-						cont[1] = cont[2];
-						cont[2] = TT_lPARENTHESIS;
-						
-						if(!Arrays.equals(cont, comp7) && !Arrays.equals(cont, comp8) && !Arrays.equals(cont, comp9)){
+						if(current.equals("")){
 							
-							tokens.enqueue("-1.0");
-							tokenTypes.enqueue(TT_NUMBER);
-							tokens.enqueue("*");
-							tokenTypes.enqueue(TT_CHAR);
+							current = current.concat(Character.toString(currentChar));
+							currentType = TokenType.BICONDITION;
+						
+						}
+						else
+							error = true;
+						
+					}
+					else
+						error = true;
+					break;
+				case '=':
+					if(prevType == TokenType.LITERAL || prevType == TokenType.rPARENTHESIS){
+						
+						if(current.equals("<"))
+							current = current.concat(Character.toString(currentChar));
+						else if(current.equals("")){
+							
+							current = current.concat(Character.toString(currentChar));
+							currentType = TokenType.CONDITION;
 							
 						}
-						else{
-							
-							tokens.enqueue("-");
-							tokenTypes.enqueue(TT_CHAR);
-							
-						}
-						
-						isNegative = false;
+						else
+							error = true;
 						
 					}
-					
-				}
+					else
+						error = true;
+					break;
+				case '>':
+					if(prevType == TokenType.LITERAL || prevType == TokenType.rPARENTHESIS){
+						
+						if(current.equals("<=")){
+							
+							current = current.concat(Character.toString(currentChar));
+							tokens.addLast(current.intern());
+							current = "";
+							prevType = TokenType.BICONDITION;
+							currentType = TokenType.EOL;
+							
+						}
+						else if(current.equals("=")){
+							
+							current = current.concat(Character.toString(currentChar));
+							tokens.addLast(current.intern());
+							current = "";
+							prevType = TokenType.CONDITION;
+							currentType = TokenType.EOL;
+							
+						}
+						else
+							error = true;
+						
+					}
+					else
+						error = true;
+					break;
+				case '(':
+					if(prevType != TokenType.rPARENTHESIS && prevType != TokenType.LITERAL && current.equals("")){
+						
+						tokens.addLast(Character.toString(currentChar).intern());
+						prevType = TokenType.lPARENTHESIS;
+						numParentheses++;
+						
+					}
+					else
+						error = true;
+					break;
+				case ')':
+					if((prevType == TokenType.LITERAL || prevType == TokenType.rPARENTHESIS) && current.equals("")){
+						
+						tokens.addLast(Character.toString(currentChar).intern());
+						prevType = TokenType.rPARENTHESIS;
+						numParentheses--;
+						
+					}
+					else
+						error = true;
+					break;
+				case ';':
+					if((prevType == TokenType.LITERAL || prevType == TokenType.rPARENTHESIS) && current.equals("")){
+						
+						tokens.addLast(Character.toString(currentChar).intern());
+						prevType = TokenType.EOL;
+						
+					}
+					else
+						error = true;
+					break;
+				default:
+					if(currentChar != '/'){
+						
+						current = current.concat(Character.toString(currentChar));
+						currentType = TokenType.LITERAL;
+						
+					}
+					else
+						error = true;
+			}
+			
+			if(error){
+				
+				System.err.println("Error at position " + i + ": Illegal character '" + currentChar + "'.");
+				tokens = null;
+				string = null;
+				break;
 				
 			}
 			
-			if(i == s.length() - 1){
-				
-				if(!token.equals("")){
-					
-					tokens.enqueue(token);
-					
-					if(operands.contains(Character.toString(token.charAt(0)))){
-						
-						tokenTypes.enqueue(TT_NUMBER);
-						
-						tempTT = TT_NUMBER;
-						
-					}
-					else if(functions.contains(Character.toString(token.charAt(0)))){
-						
-						tokenTypes.enqueue(TT_WORD);
-					
-						tempTT = TT_WORD;
-						
-					}
-					else if(token.equals("(")){
-						
-						tokenTypes.enqueue(TT_lPARENTHESIS);
-					
-						tempTT = TT_lPARENTHESIS;
-						
-					}
-					else if(token.equals(")")){
-					
-						tokenTypes.enqueue(TT_rPARENTHESIS);
-					
-						tempTT = TT_rPARENTHESIS;
-						
-					}
-					else{
-					
-						tokenTypes.enqueue(TT_CHAR);
-					
-						tempTT = TT_CHAR;
-						
-					}
-					
-					cont[0] = cont[1];
-					cont[1] = cont[2];
-					cont[2] = tempTT;
-					
-				}
-				
-			}
-				
 		}
 		
-		token = " ";
-		tokens.enqueue(token);
-		tokenTypes.enqueue(TT_EOF);
+		if(numParentheses > 0){
+			
+			System.err.println("Error, too many '('");
+			tokens = null;
+			string = null;
+			
+		}
+		else if(numParentheses < 0){
+			
+			System.err.println("Error, too many ')'");
+			tokens = null;
+			string = null;
+			
+		}
 		
 	}
-	
-	public int nextToken(){
+
+	public TokenType nextToken(){
 		
-		cval = tokens.dequeue();
-		ttype = tokenTypes.dequeue();
+		sval = tokens.pollFirst();
+		if(sval == null)
+			return null;
+		
+		switch(sval){
+			case "~":
+				ttype = TokenType.NEGATION;
+			case "&":
+				ttype = TokenType.CONJUNCTION;
+			case "|":
+				ttype = TokenType.DISJUNCTION;
+			case "<=>":
+				ttype = TokenType.BICONDITION;
+			case "=>":
+				ttype = TokenType.CONDITION;
+			case "(":
+				ttype = TokenType.lPARENTHESIS;
+			case ")":
+				ttype = TokenType.rPARENTHESIS;
+			case ";":
+				ttype = TokenType.EOL;
+			default:
+				ttype = TokenType.LITERAL;
+		}
 		
 		return ttype;
 		
 	}
-
+	
+	public TokenType getTType(){
+		
+		return ttype;
+		
+	}
+	
+	public String getSVal(){
+		
+		return sval;
+		
+	}
+	
 }
