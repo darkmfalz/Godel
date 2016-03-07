@@ -18,7 +18,7 @@ public class LogicTokenizer{
 	
 	private void tokenize(){
 		
-		String possibleLiteralChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-_,.";
+		String illegalLiteralChars = "~&|<=>=>\\();";
 		String current = "";
 		TokenType currentType = TokenType.EOL;
 		TokenType prevType = TokenType.EOL;
@@ -28,7 +28,7 @@ public class LogicTokenizer{
 			
 			char currentChar = string.charAt(i);
 			//Ends a literal
-			if(!possibleLiteralChars.contains(Character.toString(currentChar)) && currentType == TokenType.LITERAL){
+			if(illegalLiteralChars.contains(Character.toString(currentChar)) && currentType == TokenType.LITERAL){
 				
 				tokens.addLast(current.intern());
 				current = "";
@@ -158,7 +158,7 @@ public class LogicTokenizer{
 						error = true;
 					break;
 				default:
-					if(currentChar != '/'){
+					if(currentChar != '\\'){
 						
 						current = current.concat(Character.toString(currentChar));
 						currentType = TokenType.LITERAL;
@@ -178,7 +178,16 @@ public class LogicTokenizer{
 			}
 			
 		}
+		if(!current.equals("") && currentType == TokenType.LITERAL){
+			
+			tokens.addLast(current.intern());
+			current = "";
+			prevType = TokenType.LITERAL;
+			currentType = TokenType.EOL;
+			
+		}
 		
+		//If the parentheses don't cancel
 		if(numParentheses > 0){
 			
 			System.err.println("Error, too many '('");
@@ -199,26 +208,38 @@ public class LogicTokenizer{
 	public TokenType nextToken(){
 		
 		sval = tokens.pollFirst();
-		if(sval == null)
+		if(sval == null){
+			
+			ttype = null;
 			return null;
+			
+		}
 		
 		switch(sval){
 			case "~":
 				ttype = TokenType.NEGATION;
+				break;
 			case "&":
 				ttype = TokenType.CONJUNCTION;
+				break;
 			case "|":
 				ttype = TokenType.DISJUNCTION;
+				break;
 			case "<=>":
 				ttype = TokenType.BICONDITION;
+				break;
 			case "=>":
 				ttype = TokenType.CONDITION;
+				break;
 			case "(":
 				ttype = TokenType.lPARENTHESIS;
+				break;
 			case ")":
 				ttype = TokenType.rPARENTHESIS;
+				break;
 			case ";":
 				ttype = TokenType.EOL;
+				break;
 			default:
 				ttype = TokenType.LITERAL;
 		}
