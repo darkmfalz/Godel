@@ -170,7 +170,7 @@ public class LogicTokenizer{
 			
 			if(error){
 				
-				System.err.println("Error at position " + i + ": Illegal character '" + currentChar + "'.");
+				System.err.println("Error, at position " + i + " illegal character '" + currentChar + "'.");
 				tokens = null;
 				string = null;
 				break;
