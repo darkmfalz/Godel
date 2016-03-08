@@ -54,7 +54,7 @@ public class Godel {
 		
 		if(symbols.isEmpty()){
 			if(propLogicKnowledgeBase(model))
-				return propLogicTrue(fact, model);
+				return propLogicTrue(fact.clone(), model);
 			else
 				return true;
 		}
