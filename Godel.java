@@ -79,7 +79,7 @@ public class Godel {
 		boolean value = true;
 		for(int i = 0; i < knowledgeBase.size(); i++){
 			
-			if(LogicConverter.evaluate(knowledgeBase.get(i), model) > 0.0)
+			if(LogicConverter.evaluate(knowledgeBase.get(i).clone(), model) > 0.0)
 				value = (value&&true);
 			else
 				value = (value&&false);

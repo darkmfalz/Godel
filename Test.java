@@ -8,7 +8,7 @@ public class Test {
 		Godel godel = new Godel();
 		godel.tell("p");
 		godel.tell("p=>q");
-		godel.askTruthTable("q");
+		System.out.println(godel.askTruthTable("q"));
 		
 	}
 	
