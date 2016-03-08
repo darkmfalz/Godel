@@ -79,8 +79,7 @@ public class Godel {
 		boolean value = true;
 		for(int i = 0; i < knowledgeBase.size(); i++){
 			
-			double valueDouble = LogicConverter.evaluate(knowledgeBase.get(i), model);
-			if(valueDouble > 0.0)
+			if(LogicConverter.evaluate(knowledgeBase.get(i), model) > 0.0)
 				value = (value&&true);
 			else
 				value = (value&&false);
@@ -88,6 +87,15 @@ public class Godel {
 		}
 		
 		return value;
+		
+	}
+
+	private boolean propLogicTrue(ArrayDeque<String> fact, HashMap<String, Double> model){
+		
+		if(LogicConverter.evaluate(fact, model) > 0.0)
+			return true;
+		else
+			return false;
 		
 	}
 	
