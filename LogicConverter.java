@@ -716,7 +716,8 @@ public class LogicConverter {
 	}
 	
 	public static ArrayDeque<String> convertCNF(ArrayDeque<String> postfix, HashMap<String, String> literals){
-		
+		System.out.println("Input:");
+		convertInfix(postfix.clone());
 		//Algorithm implemented according to this webpage:
 		//https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html
 		
@@ -1097,6 +1098,7 @@ public class LogicConverter {
 							secondClausesClone1.addLast(temp.clone());
 							
 						}
+						secondClauses = secondClausesClone1;
 						
 						while(!secondClausesClone.isEmpty()){
 							
@@ -1305,6 +1307,9 @@ public class LogicConverter {
 				postfix.addLast(last);
 				return postfix;
 		}
+		
+		System.out.println("Output:");
+		convertInfix(output.clone());
 		
 		return output;
 		
