@@ -18,24 +18,33 @@ public class Godel {
 	
 	public void tell(String fact){
 		
-		LogicTokenizer factTokenizer = new LogicTokenizer(fact);
-		knowledgeBase.add(LogicConverter.shuntingYard(factTokenizer));
-		//Add any new tokens to the list of literals
-		factTokenizer = new LogicTokenizer(fact);
-		while(factTokenizer.nextToken() != TokenType.EOL && factTokenizer.getTType() != null)
-			if(factTokenizer.getTType() == TokenType.LITERAL && !literals.containsKey(factTokenizer.getSVal()))
-				literals.put(factTokenizer.getSVal().intern(), 0.0);
+		if(checkTruthTable(fact)){
+		
+			LogicTokenizer factTokenizer = new LogicTokenizer(fact);
+			knowledgeBase.add(LogicConverter.shuntingYard(factTokenizer));
+			//Add any new tokens to the list of literals
+			factTokenizer = new LogicTokenizer(fact);
+			while(factTokenizer.nextToken() != TokenType.EOL && factTokenizer.getTType() != null)
+				if(factTokenizer.getTType() == TokenType.LITERAL && !literals.containsKey(factTokenizer.getSVal()))
+					literals.put(factTokenizer.getSVal().intern(), 0.0);
+		
+		}
 		
 	}
 	
 	public boolean askTruthTable(String fact){
 		
 		LogicTokenizer factTokenizer = new LogicTokenizer(fact);
-		return truthTableEntails(LogicConverter.shuntingYard(factTokenizer), new LogicTokenizer(fact));
+		boolean value = truthTableEntails(LogicConverter.shuntingYard(factTokenizer), new LogicTokenizer(fact), fact);
+		if(value == checkTruthTable(fact))
+			System.out.println(fact + " is " + (value?"valid":"unsatisfiable") + ".");
+		else
+			System.out.println(fact + " is satisfiable but invalid.");
+		return value;
 		
 	}
 	
-	private boolean truthTableEntails(ArrayDeque<String> fact, LogicTokenizer factTokenizer){
+	private boolean truthTableEntails(ArrayDeque<String> fact, LogicTokenizer factTokenizer, String factString){
 		
 		//Add all symbols in the KnowledgeBase and the queried fact
 		HashMap<String, Double> symbols = new HashMap<String, Double>();
@@ -46,17 +55,34 @@ public class Godel {
 		
 		HashMap<String, Double> model = new HashMap<String, Double>();
 		
-		return truthTableCheckAll(fact, symbols, model);
+		return truthTableCheckAll(fact, symbols, model, factString);
 		
 	}
 	
-	private boolean truthTableCheckAll(ArrayDeque<String> fact, HashMap<String, Double> symbols, HashMap<String, Double> model){
+	private boolean truthTableCheckAll(ArrayDeque<String> fact, HashMap<String, Double> symbols, HashMap<String, Double> model, String factString){
 		
 		if(symbols.isEmpty()){
-			if(propLogicKnowledgeBase(model))
-				return propLogicTrue(fact.clone(), model);
-			else
+			if(propLogicKnowledgeBase(model)){
+				
+				String[] keys = model.keySet().toArray(new String[0]);
+				//Print Truth-Table
+				for(int i = 0; i < keys.length; i++)
+					System.out.print(keys[i] + ": " + (model.get(keys[i]) > 0.0 ? true + " " : false) + "\t");
+				boolean value = propLogicTrue(fact.clone(), model);
+				System.out.println(factString + ": " + (value ? true + " ": false));
+				return value;
+				
+			}
+			else{
+				
+				//String[] keys = model.keySet().toArray(new String[0]);
+				//Print Truth-Table
+				//for(int i = 0; i < keys.length; i++)
+				//	System.out.print(keys[i] + ": " + (model.get(keys[i]) > 0.0 ? true + " " : false) + "\t");
+				//boolean value = propLogicTrue(fact.clone(), model);
+				//System.out.println(factString + ": " + (value ? true + " ": false) + " [INVALID MODEL]");
 				return true;
+			}
 		}
 		else{
 			
@@ -65,10 +91,56 @@ public class Godel {
 			rest.putAll(symbols);
 			rest.remove(p);
 			
-			boolean first = truthTableCheckAll(fact, rest, extend(p, true, model));
-			boolean second = truthTableCheckAll(fact, rest, extend(p, false, model));
+			boolean first = truthTableCheckAll(fact, rest, extend(p, true, model), factString);
+			boolean second = truthTableCheckAll(fact, rest, extend(p, false, model), factString);
 			
 			return (first&&second);
+			
+		}
+		
+	}
+	
+	public boolean checkTruthTable(String fact){
+		
+		LogicTokenizer factTokenizer = new LogicTokenizer(fact);
+		return truthTableContradicts(LogicConverter.shuntingYard(factTokenizer), new LogicTokenizer(fact));
+		
+	}
+	
+	private boolean truthTableContradicts(ArrayDeque<String> fact, LogicTokenizer factTokenizer){
+		
+		//Add all symbols in the KnowledgeBase and the queried fact
+		HashMap<String, Double> symbols = new HashMap<String, Double>();
+		symbols.putAll(literals);
+		while(factTokenizer.nextToken() != TokenType.EOL && factTokenizer.getTType() != null)
+			if(factTokenizer.getTType() == TokenType.LITERAL && !symbols.containsKey(factTokenizer.getSVal()))
+				symbols.put(factTokenizer.getSVal().intern(), 0.0);
+		
+		HashMap<String, Double> model = new HashMap<String, Double>();
+		
+		return truthTableCheckAll2(fact, symbols, model);
+		
+	}
+	
+	private boolean truthTableCheckAll2(ArrayDeque<String> fact, HashMap<String, Double> symbols, HashMap<String, Double> model){
+		
+		if(symbols.isEmpty()){
+			if(propLogicKnowledgeBase(model))
+				return propLogicTrue(fact.clone(), model);
+			else
+				return false;
+		}
+		else{
+			
+			String p = symbols.keySet().toArray(new String[0])[0];
+			HashMap<String, Double> rest = new HashMap<String, Double>();
+			rest.putAll(symbols);
+			rest.remove(p);
+			
+			boolean first = truthTableCheckAll2(fact, rest, extend(p, true, model));
+			boolean second = truthTableCheckAll2(fact, rest, extend(p, false, model));
+			
+			return (first||second);
 			
 		}
 		

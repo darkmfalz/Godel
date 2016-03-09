@@ -67,6 +67,84 @@ public class LogicConverter {
 		
 	}
 	
+	public static ArrayDeque<String> convertCNF(ArrayDeque<String> postfix){
+		
+		ArrayDeque<String> output = new ArrayDeque<String>();
+		ArrayDeque<String> temp = new ArrayDeque<String>();
+		//Fix Double Negation
+		while(!postfix.isEmpty()){
+			
+			String next = postfix.pollFirst();
+			switch(next){
+				case "~":
+					if(!postfix.isEmpty() && postfix.peekFirst().equals("~"))
+						postfix.pollFirst();
+					else
+						temp.addLast(next);
+					break;
+				default:
+					temp.addLast(next);
+			}
+			
+		}
+		ArrayDeque<String> temp2 = temp.clone();
+		while(!temp2.isEmpty())
+			System.out.print(temp2.pollFirst());
+		System.out.println();
+		postfix = temp.clone();
+		temp = new ArrayDeque<String>();
+		//DeMorgan's Laws
+		ArrayDeque<String> stack = new ArrayDeque<String>();
+		while(!postfix.isEmpty()){
+			
+			String p;
+			String q;
+			String next = postfix.pollFirst();
+			switch(next){
+				case "~":
+					String operand = stack.pollFirst();
+					//if(operand.charAt(0) == '('){
+						
+						
+						
+					//}
+					//else
+					stack.addFirst("( " + operand + " " + next + " )");
+					break;
+				case "&":
+					q = stack.pollFirst();
+					p = stack.pollFirst();
+					stack.addFirst("( " + p + " " + q + " " + next + " )");
+					break;
+				case "|":
+					q = stack.pollFirst();
+					p = stack.pollFirst();
+					stack.addFirst("( " + p + " " + q + " " + next + " )");
+					break;
+				case "=>":
+					q = stack.pollFirst();
+					p = stack.pollFirst();
+					stack.addFirst("( " + p + " " + q + " " + next + " )");
+					break;
+				case "<=>":
+					q = stack.pollFirst();
+					p = stack.pollFirst();
+					stack.addFirst("( " + p + " " + q + " " + next + " )");
+					break;
+				default:
+					stack.addFirst(next);
+			}
+			
+		}
+		
+		while(!stack.isEmpty())
+			System.out.print(stack.pollFirst());
+		System.out.println();
+		
+		return output;
+		
+	}
+	
 	public static double evaluate(ArrayDeque<String> fact, HashMap<String, Double> model){
 		
 		ArrayDeque<Double> stack = new ArrayDeque<Double>();
