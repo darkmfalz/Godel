@@ -5,11 +5,7 @@ public class Test {
 	public static void main(String[] args){
 		
 		ArrayDeque<String> test = LogicConverter.shuntingYard(new LogicTokenizer("(p<=>q)=>(~p&r)"));
-		LogicConverter.convertCNF(test.clone());
-		test = LogicConverter.shuntingYard(new LogicTokenizer("(p|q|r)&(~p|~q|r)&(~p|~q|~r)"));
-		System.out.println();
-		while(!test.isEmpty())
-			System.out.print(test.pollFirst());
+		LogicConverter.convertInfix(LogicConverter.convertCNF(test.clone(), null));
 		
 		/*Godel godel = new Godel();
 		godel.tell("X|Y|Z|W");
