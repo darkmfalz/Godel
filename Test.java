@@ -4,8 +4,9 @@ public class Test {
 
 	public static void main(String[] args){
 		
-		ArrayDeque<String> test = LogicConverter.shuntingYard(new LogicTokenizer("(~((~((P&Q)|Q))|Q))&(~(P&Q))"));
+		ArrayDeque<String> test = LogicConverter.shuntingYard(new LogicTokenizer("(~((~((P&Q)|Q))|Q))&(~(~P<=>Q))"));
 		LogicConverter.convertCNF(test.clone());
+		System.out.println();
 		while(!test.isEmpty())
 			System.out.print(test.pollFirst());
 		
