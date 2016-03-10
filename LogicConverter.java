@@ -716,8 +716,7 @@ public class LogicConverter {
 	}
 	
 	public static ArrayDeque<String> convertCNF(ArrayDeque<String> postfix, HashMap<String, String> literals){
-		System.out.println("Input:");
-		convertInfix(postfix.clone());
+		
 		//Algorithm implemented according to this webpage:
 		//https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html
 		
@@ -1308,10 +1307,235 @@ public class LogicConverter {
 				return postfix;
 		}
 		
-		System.out.println("Output:");
-		convertInfix(output.clone());
-		
+		output = simplifyCNF(output.clone());
 		return output;
+		
+	}
+	
+	public static ArrayDeque<String> simplifyCNF(ArrayDeque<String> currPostfix){
+
+		ArrayDeque<String> record = currPostfix.clone();
+		ArrayDeque<ArrayDeque<String>> stack = new ArrayDeque<ArrayDeque<String>>();
+		while(!currPostfix.isEmpty()){
+			
+			String next = currPostfix.pollFirst();
+			ArrayDeque<String> add;
+			ArrayDeque<String> p;
+			ArrayDeque<String> q;
+			HashMap<String, String> literals;
+			switcheroo:
+			switch(next){
+				case "~":
+					add = stack.pollFirst();
+					add.addLast("~");
+					stack.addFirst(add);
+					break;
+				case "&":
+					q = stack.pollFirst();
+					p = stack.pollFirst();
+					add = new ArrayDeque<String>();
+					boolean hasTrue = false;
+					while(!p.isEmpty()){
+					
+						String temp = p.pollFirst();
+						if(temp.equals("TrueTrueTrue")){
+							
+							hasTrue = true;
+							add = new ArrayDeque<String>();
+							break;
+							
+						}
+						else
+							add.addLast(temp);
+					
+					}
+					while(!q.isEmpty()){
+						
+						String temp = q.pollFirst();
+						if(temp.equals("TrueTrueTrue")){
+							
+							if(!hasTrue){
+								
+								hasTrue = true;
+								break;
+							}
+							else
+								add.addLast(temp);
+							
+						}
+						else
+							add.addLast(temp);
+					
+					}
+					if(!hasTrue)
+						add.addLast("&");
+					stack.addFirst(add);
+					break;
+				case "|":
+					q = stack.pollFirst();
+					int goodQ = q.size();
+					p = stack.pollFirst();
+					int goodP = p.size();
+					add = new ArrayDeque<String>();
+					literals = new HashMap<String, String>();
+					while(!p.isEmpty()){
+					
+						String temp = p.pollFirst();
+						if(temp.equals("TrueTrueTrue")){
+							
+							ArrayDeque<String> add2 = new ArrayDeque<String>();
+							add2.addLast("TrueTrueTrue");
+							stack.addFirst(add2);
+							break switcheroo;
+							
+						}
+						if(!temp.equals("|") && !temp.equals("&") && !temp.equals("~")){
+							
+							if(!p.isEmpty() && p.peekFirst().equals("~")){
+								
+								if(literals.containsKey(temp)){
+									
+									ArrayDeque<String> add2 = new ArrayDeque<String>();
+									add2.addLast("TrueTrueTrue");
+									stack.addFirst(add2);
+									break switcheroo;
+									
+								}
+								else if(!literals.containsKey(temp + "~")){
+									
+									literals.put(temp + "~", temp + "~");
+									add.addLast(temp);
+									
+								}
+								else{
+									
+									goodP -= 3;
+									//Remove the negation
+									p.pollFirst();
+									//Remove the operator
+									p.pollFirst();
+									
+								}
+								
+							}
+							else{
+
+								if(literals.containsKey(temp + "~")){
+									
+									ArrayDeque<String> add2 = new ArrayDeque<String>();
+									add2.addLast("TrueTrueTrue");
+									stack.addFirst(add2);
+									break switcheroo;
+									
+								}
+								else if(!literals.containsKey(temp)){
+									
+									literals.put(temp, temp);
+									add.addLast(temp);
+									
+								}
+								else{
+									
+									goodP -= 2;
+									//Remove the operator
+									p.pollFirst();
+									
+								}
+								
+							}
+							
+						}
+						else
+							add.addLast(temp);
+					
+					}
+					while(!q.isEmpty()){
+						
+						String temp = q.pollFirst();
+						if(temp.equals("TrueTrueTrue")){
+							
+							ArrayDeque<String> add2 = new ArrayDeque<String>();
+							add2.addLast("TrueTrueTrue");
+							stack.addFirst(add2);
+							break switcheroo;
+							
+						}
+						if(!temp.equals("|") && !temp.equals("&") && !temp.equals("~")){
+							
+							if(!q.isEmpty() && q.peekFirst().equals("~")){
+								
+								if(literals.containsKey(temp)){
+									
+									ArrayDeque<String> add2 = new ArrayDeque<String>();
+									add2.addLast("TrueTrueTrue");
+									stack.addFirst(add2);
+									break switcheroo;
+									
+								}
+								else if(!literals.containsKey(temp + "~")){
+									
+									literals.put(temp + "~", temp + "~");
+									add.addLast(temp);
+									
+								}
+								else{
+									
+									goodQ -= 3;
+									//Remove the negation
+									q.pollFirst();
+									//Remove the operator
+									q.pollFirst();
+									
+								}
+								
+							}
+							else{
+
+								if(literals.containsKey(temp + "~")){
+									
+									ArrayDeque<String> add2 = new ArrayDeque<String>();
+									add2.addLast("TrueTrueTrue");
+									stack.addFirst(add2);
+									break switcheroo;
+									
+								}
+								else if(!literals.containsKey(temp)){
+									
+									literals.put(temp, temp);
+									add.addLast(temp);
+									
+								}
+								else{
+									
+									goodQ -= 2;
+									//Remove the operator
+									q.pollFirst();
+									
+								}
+								
+							}
+							
+						}
+						else
+							add.addLast(temp);
+					
+					}
+					if(goodP > 0 && goodQ > 0)
+						add.addLast("|");
+					stack.addFirst(add);
+					break;
+				default:
+					add = new ArrayDeque<String>();
+					add.addLast(next);
+					stack.addFirst(add);
+			}
+			
+		}
+		
+		if(stack.peekFirst() == null)
+			return record;
+		
+		return stack.pollFirst();
 		
 	}
 	
@@ -1360,7 +1584,7 @@ public class LogicConverter {
 			switch(next){
 				case "~":
 					String operand = stack.pollFirst();
-					stack.addFirst("( " + next + " " + operand + " )");
+					stack.addFirst( next + " " + operand );
 					break;
 				case "&":
 					q = stack.pollFirst();

@@ -5,7 +5,10 @@ public class Test {
 	public static void main(String[] args){
 		
 		ArrayDeque<String> test = LogicConverter.shuntingYard(new LogicTokenizer("(p<=>q)=>(~p&r)"));
-		LogicConverter.convertInfix(LogicConverter.convertCNF(test.clone(), null));
+		test = LogicConverter.convertCNF(test.clone(), null);
+		LogicConverter.convertInfix(test.clone());
+		while(!test.isEmpty())
+			System.out.print(test.pollFirst());
 		
 		/*Godel godel = new Godel();
 		godel.tell("X|Y|Z|W");
