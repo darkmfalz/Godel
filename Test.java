@@ -4,11 +4,16 @@ public class Test {
 
 	public static void main(String[] args){
 		
-		ArrayDeque<String> test = LogicConverter.shuntingYard(new LogicTokenizer("(p<=>q)=>(~p&r)"));
+		/*ArrayDeque<String> test = LogicConverter.shuntingYard(new LogicTokenizer("p|p|q"));
 		test = LogicConverter.convertCNF(test.clone());
 		LogicConverter.convertInfix(test.clone());
 		while(!test.isEmpty())
-			System.out.print(test.pollFirst() + " ");
+			System.out.print(test.pollFirst() + " ");*/
+		
+		Godel godel = new Godel(false);
+		godel.tell("p");
+		godel.tell("p=>q");
+		godel.ask("q");
 		
 		/*Godel godel = new Godel();
 		godel.tell("X|Y|Z|W");

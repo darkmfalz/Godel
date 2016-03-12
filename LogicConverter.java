@@ -1,4 +1,6 @@
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -63,168 +65,6 @@ public class LogicConverter {
 			output.addLast(stack.pollFirst().intern());
 			
 		}
-		
-		return output;
-		
-	}
-	
-	public static ArrayDeque<String> convertCNFdeprecated(ArrayDeque<String> postfix){
-		
-		ArrayDeque<String> output = new ArrayDeque<String>();
-		
-		//Remove Bicondition operator and convert to infix
-		ArrayDeque<String> stack = new ArrayDeque<String>();
-		while(!postfix.isEmpty()){
-			
-			String p;
-			String q;
-			String next = postfix.pollFirst();
-			switch(next){
-				case "~":
-					String operand = stack.pollFirst();
-					stack.addFirst("( " + next + " " + operand + " )");
-					break;
-				case "&":
-					q = stack.pollFirst();
-					p = stack.pollFirst();
-					stack.addFirst("( " + p + " " + next + " " + q + " )");
-					break;
-				case "|":
-					q = stack.pollFirst();
-					p = stack.pollFirst();
-					stack.addFirst("( " + p + " " + next + " " + q + " )");
-					break;
-				case "=>":
-					q = stack.pollFirst();
-					p = stack.pollFirst();
-					stack.addFirst("( " + p + " " + next + " " + q + " )");
-					break;
-				case "<=>":
-					q = stack.pollFirst();
-					p = stack.pollFirst();;
-					stack.addFirst("( ( " + p + " => " + q + " ) & ( " + q + " => " + p + " ) )");
-					break;
-				default:
-					stack.addFirst(next);
-			}
-			
-		}
-		
-		String infix = "";
-		while(!stack.isEmpty())
-			infix = infix + stack.pollFirst();
-		System.out.println(infix);
-		postfix = LogicConverter.shuntingYard(new LogicTokenizer(infix));
-		stack = new ArrayDeque<String>();
-		
-		//Remove Condition operator
-		stack = new ArrayDeque<String>();
-		while(!postfix.isEmpty()){
-			
-			String p;
-			String q;
-			String next = postfix.pollFirst();
-			switch(next){
-				case "~":
-					String operand = stack.pollFirst();
-					stack.addFirst("( " + next + " " + operand + " )");
-					break;
-				case "&":
-					q = stack.pollFirst();
-					p = stack.pollFirst();
-					stack.addFirst("( " + p + " " + next + " " + q + " )");
-					break;
-				case "|":
-					q = stack.pollFirst();
-					p = stack.pollFirst();
-					stack.addFirst("( " + p + " " + next + " " + q + " )");
-					break;
-				case "=>":
-					q = stack.pollFirst();
-					p = stack.pollFirst();
-					stack.addFirst("( ~ " + p + " | " + q + " )");
-					break;
-				default:
-					stack.addFirst(next);
-			}
-			
-		}
-		
-		infix = "";
-		while(!stack.isEmpty())
-			infix = infix + stack.pollFirst();
-		System.out.println(infix);
-		postfix = LogicConverter.shuntingYard(new LogicTokenizer(infix));
-		stack = new ArrayDeque<String>();
-		
-		//DeMorgan's Laws
-		boolean converted = false;
-		while(!postfix.isEmpty()){
-			
-			String p;
-			String q;
-			String next = postfix.pollFirst();
-			switch(next){
-				case "~":
-					if(!converted){
-						String operand = stack.pollFirst();
-						stack.addFirst("( " + next + " " + operand + " )");
-					}
-					break;
-				case "&":
-					q = stack.pollFirst();
-					p = stack.pollFirst();
-					if(!postfix.isEmpty() && postfix.peekFirst().equals("~")){
-						stack.addFirst("( ( ~ " + p + " ) | ( ~ " + q + " ) )");
-						converted = true;
-					}
-					else
-						stack.addFirst("( " + p + " " + next + " " + q +  " )");
-					break;
-				case "|":
-					q = stack.pollFirst();
-					p = stack.pollFirst();
-					if(!postfix.isEmpty() && postfix.peekFirst().equals("~")){
-						stack.addFirst("( ( ~ " + p + " ) & ( ~ " + q + " ) )");
-						converted = true;
-					}
-					else
-						stack.addFirst("( " + p + " " + next + " " + q +  " )");
-					break;
-				default:
-					stack.addFirst(next);
-			}
-			
-		}
-		
-		infix = "";
-		while(!stack.isEmpty())
-			infix = infix + stack.pollFirst();
-		System.out.println(infix);
-		postfix = LogicConverter.shuntingYard(new LogicTokenizer(infix));
-		stack = new ArrayDeque<String>();
-		
-		ArrayDeque<String> temp = new ArrayDeque<String>();
-		//Remove Double Negation
-		while(!postfix.isEmpty()){
-			
-			String next = postfix.pollFirst();
-			switch(next){
-				case "~":
-					if(!postfix.isEmpty() && postfix.peekFirst().equals("~"))
-						postfix.pollFirst();
-					else
-						temp.addLast(next);
-					break;
-				default:
-					temp.addLast(next);
-			}
-			
-		}
-		ArrayDeque<String> temp2 = temp.clone();
-		while(!temp2.isEmpty())
-			System.out.print(temp2.pollFirst());
-		postfix = temp.clone();
 		
 		return output;
 		
@@ -1330,7 +1170,140 @@ public class LogicConverter {
 		
 	}
 	
-	public static ArrayDeque<String> convertInfix(ArrayDeque<String> postfix){
+	public static ArrayList<ArrayDeque<String>> resolve(ArrayDeque<String> fact1, ArrayDeque<String> fact2){
+			
+		if(fact1.peekFirst().equals(fact2.peekFirst()) && (fact1.size() <= 2) && (fact2.size() <= 2) && (fact1.size() != fact2.size()))
+			return null;
+		
+		ArrayList<ArrayDeque<String>> output = new ArrayList<ArrayDeque<String>>();
+		ArrayDeque<ArrayDeque<String>> fact1Literals = seperateClausesDisjunction(fact1.clone());
+		ArrayDeque<ArrayDeque<String>> collisions = new ArrayDeque<ArrayDeque<String>>();
+		while(!fact1Literals.isEmpty()){
+			
+			ArrayDeque<String> fact1Literal = fact1Literals.pollFirst();
+			ArrayDeque<ArrayDeque<String>> fact2Literals = seperateClausesDisjunction(fact2.clone());
+			while(!fact2Literals.isEmpty()){
+				
+				ArrayDeque<String> fact2Literal = fact2Literals.pollFirst();
+				if(fact1Literal.peekFirst().equals(fact2Literal.peekFirst())){
+					
+					if(fact1Literal.size() != fact2Literal.size())
+						collisions.addLast(fact1Literal);
+					
+				}
+				
+			}
+			
+		}
+		
+		//NOW RESOLVE!
+		while(!collisions.isEmpty()){
+			
+			ArrayDeque<String> avoid = collisions.pollFirst();
+			ArrayDeque<String> literals = new ArrayDeque<String>();
+			
+			int counter = 0;
+			fact1Literals = seperateClausesDisjunction(fact1.clone());
+			while(!fact1Literals.isEmpty()){
+				
+				ArrayDeque<String> fact1Literal = fact1Literals.pollFirst();
+				if(!fact1Literal.peekFirst().equals(avoid.peekFirst())){
+					
+					while(!fact1Literal.isEmpty())
+						literals.addLast(fact1Literal.pollFirst());
+					
+					if(counter > 0)
+						literals.addLast("|");
+					counter++;
+					
+				}
+				
+			}
+			
+			ArrayDeque<ArrayDeque<String>> fact2Literals = seperateClausesDisjunction(fact2.clone());
+			while(!fact2Literals.isEmpty()){
+				
+				ArrayDeque<String> fact2Literal = fact2Literals.pollFirst();
+				if(!fact2Literal.peekFirst().equals(avoid.peekFirst())){
+					
+					while(!fact2Literal.isEmpty())
+						literals.addLast(fact2Literal.pollFirst());
+					
+					if(counter > 0)
+						literals.addLast("|");
+					counter++;
+					
+				}
+				
+			}
+			
+			output.add(literals);
+			
+		}
+		
+		if(output.size() == 0)
+			output.add(fact1.clone());
+		
+		return output;
+		
+	}
+	
+	public static ArrayDeque<ArrayDeque<String>> seperateClausesDisjunction(ArrayDeque<String> postfix){
+		
+		ArrayDeque<ArrayDeque<String>> clauses = new ArrayDeque<ArrayDeque<String>>();
+		
+		if(!postfix.peekLast().equals("|")){
+			
+			clauses.addLast(postfix);
+			return clauses;
+			
+		}
+		
+		ArrayDeque<ArrayDeque<String>> stack = new ArrayDeque<ArrayDeque<String>>();
+		while(postfix.size() > 1){
+			
+			ArrayDeque<String> add = new ArrayDeque<String>();
+			ArrayDeque<String> p;
+			ArrayDeque<String> q;
+			String next = postfix.pollFirst();
+			switch(next){
+				case "~":
+					p = stack.pollFirst();
+					while(!p.isEmpty())
+						add.addLast(p.pollFirst());
+					add.addLast("~");
+					stack.addFirst(add);
+					break;
+				case "|":
+					q = stack.pollFirst();
+					p = stack.pollFirst();
+					while(!p.isEmpty())
+						add.addLast(p.pollFirst());
+					while(!q.isEmpty())
+						add.addLast(q.pollFirst());
+					add.addLast("|");
+					stack.addFirst(add);
+					break;
+				default:
+					add.addLast(next);
+					stack.addFirst(add);
+			}
+			
+		}
+		
+		ArrayDeque<ArrayDeque<String>> clauses2 = seperateClausesCNF(stack.pollFirst());
+		ArrayDeque<ArrayDeque<String>> clauses1 = seperateClausesCNF(stack.pollFirst());
+		
+		while(!clauses1.isEmpty())
+			clauses.addLast(clauses1.pollFirst());
+		while(!clauses2.isEmpty())
+			clauses.addLast(clauses2.pollFirst());
+		
+		return clauses;
+		
+	}
+	
+	public static String convertInfix(ArrayDeque<String> postfix){
 		
 		ArrayDeque<String> stack = new ArrayDeque<String>();
 		while(!postfix.isEmpty()){
@@ -1372,13 +1345,26 @@ public class LogicConverter {
 		String infix = "";
 		while(!stack.isEmpty())
 			infix = infix + stack.pollFirst();
-		System.out.println(infix);
-		LogicTokenizer tokens = new LogicTokenizer(infix);
-		ArrayDeque<String> output = new ArrayDeque<String>();
-		while(tokens.nextToken() != TokenType.EOL && tokens.getTType() != null)
-			output.add(tokens.getSVal());
-
-		return output;
+		
+		return infix;
+		
+	}
+	
+	public static boolean contains(ArrayList<ArrayDeque<String>> clauses, ArrayDeque<String> query){
+		
+		boolean value = false;
+		
+		for(int i = 0; i < clauses.size(); i++){
+			
+			ArrayDeque<String> temp = clauses.get(i).clone();
+			String[] tempArr = temp.toArray(new String[0]);
+			String[] queryArr = query.toArray(new String[0]);
+			
+			value = value || Arrays.equals(tempArr, queryArr);
+			
+		}
+		
+		return value;
 		
 	}
 	
