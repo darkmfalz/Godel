@@ -223,7 +223,11 @@ public class Godel {
 		if(checkTruthTable(fact)){
 			
 			LogicTokenizer factTokenizer = new LogicTokenizer(fact);
-			knowledgeBase.add(LogicConverter.convertCNF(LogicConverter.shuntingYard(factTokenizer)));
+			ArrayDeque<String> factDeque = LogicConverter.convertCNF(LogicConverter.shuntingYard(factTokenizer));
+			System.out.println(fact + " = " + LogicConverter.convertInfix(factDeque.clone()));
+			if(factDeque.peekFirst().equals("TrueTrueTrue"))
+				return;
+			knowledgeBase.add(factDeque);
 			//Add any new tokens to the list of literals
 			factTokenizer = new LogicTokenizer(fact);
 			while(factTokenizer.nextToken() != TokenType.EOL && factTokenizer.getTType() != null)
@@ -240,7 +244,7 @@ public class Godel {
 		ArrayList<ArrayDeque<String>> clauses = new ArrayList<ArrayDeque<String>>();
 		for(int i = 0; i < knowledgeBase.size(); i++){
 			
-			ArrayDeque<ArrayDeque<String>> kbClauses = LogicConverter.seperateClausesCNF(knowledgeBase.get(i));
+			ArrayDeque<ArrayDeque<String>> kbClauses = LogicConverter.seperateClausesCNF(knowledgeBase.get(i).clone());
 			while(!kbClauses.isEmpty())
 				clauses.add(kbClauses.pollFirst());
 			
@@ -253,7 +257,7 @@ public class Godel {
 		while(!queryClauses.isEmpty())
 			clauses.add(queryClauses.pollFirst());
 		//PROVE STUFF.
-		ArrayList<ArrayDeque<String>> result = resolutionEntails(clauses);
+		/*ArrayList<ArrayDeque<String>> result = resolutionEntails(clauses);
 		
 		if(result == null){
 			
@@ -262,175 +266,94 @@ public class Godel {
 			
 		}
 		
-		while(!proof.isEmpty())
-			System.out.println(proof.pollFirst());
+		return true;*/
+		
+		boolean value = resolutionEntails(clauses);
+		if(value){
+			
+			while(!proof.isEmpty())
+				System.out.println(proof.pollFirst());
+			System.out.println("Therefore " + query + " follows logically");
+			
+		}
+		else
+			System.out.println(query + " does not follow");
 		
 		proof = new ArrayDeque<String>();
-		
-		return true;
+		return value;
 		
 	}
 	
-	private ArrayList<ArrayDeque<String>> resolutionEntails(ArrayList<ArrayDeque<String>> kb){
+	private boolean resolutionEntails(ArrayList<ArrayDeque<String>> kb){
 		
-		for(int i = 0; i < kb.size() - 1; i++){
+		ArrayList<int[]> parents = new ArrayList<int[]>();
+		for(int i = 0; i < kb.size(); i++){
 			
-			for(int j = i + 1; j < kb.size(); j++){
-				
-				ArrayList<ArrayDeque<String>> newClauses = new ArrayList<ArrayDeque<String>>();
-				newClauses.add(kb.get(i).clone());
-				newClauses.add(kb.get(j).clone());
-				ArrayList<ArrayDeque<String>> resolvent = LogicConverter.resolve(kb.get(i).clone(), kb.get(j).clone());
-				if(resolvent == null){
-					
-					String proofLine = "";
-					proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(i).clone()));
-					proofLine = proofLine.concat(" and ");
-					proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(j).clone()));
-					proofLine = proofLine.concat(" resolve to form a contradiction");
-					proof.addFirst(proofLine);
-					return newClauses;
-					
-				}
-				if(!resolvent.get(0).equals(kb.get(i))){
-					
-					for(int k = 0; k < resolvent.size(); k++){
-					
-						ArrayList<ArrayDeque<String>> newClausesK = new ArrayList<ArrayDeque<String>>();
-						for(int a = 0; a < newClauses.size(); a++)
-							newClausesK.add(newClauses.get(k).clone());
-						newClausesK.add(resolvent.get(k).clone());
-						newClausesK = resolutionEntails(newClausesK, kb);
-						if(newClausesK != null){
-							
-							String proofLine = "";
-							proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(i).clone()));
-							proofLine = proofLine.concat(" and ");
-							proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(j).clone()));
-							proofLine = proofLine.concat(" resolve to form ");
-							proofLine = proofLine.concat(LogicConverter.convertInfix(resolvent.get(k).clone()));
-							proof.addFirst(proofLine);
-							return newClausesK;
-							
-						}
-					
-					}
-					
-				}
-				
-			}
+			int[] nullParents = {-1, -1};
+			parents.add(nullParents);
 			
 		}
+		ArrayList<int[]> newParents = new ArrayList<int[]>();
+		ArrayList<ArrayDeque<String>> newClauses = new ArrayList<ArrayDeque<String>>();
+		int start = 0;
 		
-		return null;
-		
-	}
-	
-	private ArrayList<ArrayDeque<String>> resolutionEntails(ArrayList<ArrayDeque<String>> clauses, ArrayList<ArrayDeque<String>> kb){
-		
-		for(int i = 0; i < clauses.size(); i++){
+		while(true){
 			
-			for(int j = 0; j < kb.size(); j++){
+			for(int i = 0; i < kb.size() - 1; i++){
 				
-				if(!LogicConverter.contains(clauses, kb.get(j).clone())){
-				
-					ArrayList<ArrayDeque<String>> newClauses = new ArrayList<ArrayDeque<String>>();
-					for(int k = 0; k < clauses.size(); k++)
-						newClauses.add(clauses.get(k));
-					newClauses.add(kb.get(j).clone());
-					ArrayList<ArrayDeque<String>> resolvent = LogicConverter.resolve(clauses.get(i).clone(), kb.get(j).clone());
-					if(resolvent == null){
-						
+				ArrayDeque<String> clause1 = kb.get(i);
+				for(int j = Math.max(i + 1, start); j < kb.size(); j++){
+					
+					ArrayDeque<String> clause2 = kb.get(j);
+					ArrayList<ArrayDeque<String>> resolvents = LogicConverter.resolve(clause1, clause2);
+					
+					if(resolvents == null){
+					
 						String proofLine = "";
-						proofLine = proofLine.concat(LogicConverter.convertInfix(clauses.get(i).clone()));
+						proofLine = proofLine.concat(LogicConverter.convertInfix(clause1.clone()));
 						proofLine = proofLine.concat(" and ");
-						proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(j).clone()));
+						proofLine = proofLine.concat(LogicConverter.convertInfix(clause2.clone()));
 						proofLine = proofLine.concat(" resolve to form a contradiction");
 						proof.addFirst(proofLine);
-						return newClauses;
-						
+						writeProof(kb, parents, j);
+						writeProof(kb, parents, i);
+						return true;
+					
 					}
-					if(!resolvent.get(0).equals(clauses.get(i))){
+					else if(!LogicConverter.equals(resolvents.get(0), clause1)){
 						
-						for(int k = 0; k < resolvent.size(); k++){
-						
-							if(!LogicConverter.contains(newClauses, resolvent.get(k))){
+						for(int k = 0; k < resolvents.size(); k++){
 							
-								ArrayList<ArrayDeque<String>> newClausesK = new ArrayList<ArrayDeque<String>>();
-								for(int a = 0; a < newClauses.size(); a++)
-									newClausesK.add(newClauses.get(k).clone());
-								newClausesK.add(resolvent.get(k).clone());
-								newClausesK = resolutionEntails(newClausesK, kb);
-								if(newClausesK != null){
-									
-									String proofLine = "";
-									proofLine = proofLine.concat(LogicConverter.convertInfix(clauses.get(i).clone()));
-									proofLine = proofLine.concat(" and ");
-									proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(j).clone()));
-									proofLine = proofLine.concat(" resolve to form ");
-									proofLine = proofLine.concat(LogicConverter.convertInfix(resolvent.get(k).clone()));
-									proof.addFirst(proofLine);
-									return newClausesK;
-								}
+							if(!LogicConverter.contains(newClauses, resolvents.get(k))){
 							
-							}
+								newClauses.add(resolvents.get(k));
+								int[] arrParents = {i, j};
+								newParents.add(arrParents);
 								
+							}
+							
 						}
 						
 					}
-				
+					
 				}
 				
 			}
+			start = kb.size();
 			
-		}
-		
-		for(int i = 0; i < clauses.size() - 1; i++){
+			boolean containsAll = true;
+			for(int i = 0; i < newClauses.size(); i++)
+				containsAll = containsAll && LogicConverter.contains(kb, newClauses.get(i));
 			
-			for(int j = i + 1; j < clauses.size(); j++){
+			if(containsAll)
+				return false;
+			
+			for(int i = 0; i < newClauses.size(); i++){
 				
-				ArrayList<ArrayDeque<String>> newClauses = new ArrayList<ArrayDeque<String>>();
-				for(int k = 0; k < clauses.size(); k++)
-					newClauses.add(clauses.get(k));
-				ArrayList<ArrayDeque<String>> resolvent = LogicConverter.resolve(clauses.get(i).clone(), clauses.get(j).clone());
-				if(resolvent == null){
+				if(!LogicConverter.contains(kb, newClauses.get(i))){
 					
-					String proofLine = "";
-					proofLine = proofLine.concat(LogicConverter.convertInfix(clauses.get(i).clone()));
-					proofLine = proofLine.concat(" and ");
-					proofLine = proofLine.concat(LogicConverter.convertInfix(clauses.get(j).clone()));
-					proofLine = proofLine.concat(" resolve to form a contradiction");
-					proof.addFirst(proofLine);
-					return newClauses;
-					
-				}
-				if(!resolvent.get(0).equals(clauses.get(i))){
-					
-					for(int k = 0; k < resolvent.size(); k++){
-					
-						if(!LogicConverter.contains(newClauses, resolvent.get(k))){
-						
-							ArrayList<ArrayDeque<String>> newClausesK = new ArrayList<ArrayDeque<String>>();
-							for(int a = 0; a < newClauses.size(); a++)
-								newClausesK.add(newClauses.get(k).clone());
-							newClausesK.add(resolvent.get(k));
-							newClausesK = resolutionEntails(newClausesK, kb);
-							if(newClausesK != null){
-								
-								String proofLine = "";
-								proofLine = proofLine.concat(LogicConverter.convertInfix(clauses.get(i).clone()));
-								proofLine = proofLine.concat(" and ");
-								proofLine = proofLine.concat(LogicConverter.convertInfix(clauses.get(j).clone()));
-								proofLine = proofLine.concat(" resolve to form ");
-								proofLine = proofLine.concat(LogicConverter.convertInfix(resolvent.get(k).clone()));
-								proof.addFirst(proofLine);
-								return newClausesK;
-								
-							}
-						
-						}
-							
-					}
+					kb.add(newClauses.get(i));
+					parents.add(newParents.get(i));
 					
 				}
 				
@@ -438,7 +361,32 @@ public class Godel {
 			
 		}
 		
-		return null;
+	}
+
+	private void writeProof(ArrayList<ArrayDeque<String>> kb, ArrayList<int[]> parents, int i){
+		
+		String proofLine = "";
+		int[] parentsI = parents.get(i);
+		if(parentsI[0] == -1){
+			
+			proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(i).clone()));
+			proofLine = proofLine.concat(" is given");
+			proof.addFirst(proofLine);
+			
+		}
+		else{
+			
+			proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(parentsI[0]).clone()));
+			proofLine = proofLine.concat(" and ");
+			proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(parentsI[1]).clone()));
+			proofLine = proofLine.concat(" resolve to form ");
+			proofLine = proofLine.concat(LogicConverter.convertInfix(kb.get(i).clone()));
+			proof.addFirst(proofLine);
+			
+			writeProof(kb, parents, parentsI[1]);
+			writeProof(kb, parents, parentsI[0]);
+			
+		}
 		
 	}
 	

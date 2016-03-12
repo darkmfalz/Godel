@@ -909,7 +909,7 @@ public class LogicConverter {
 		
 	}
 	
-	public static ArrayDeque<String> simplifyCNF(ArrayDeque<String> currPostfix){
+	public static ArrayDeque<String> simplifyCNFDeprecated(ArrayDeque<String> currPostfix){
 
 		ArrayDeque<String> record = currPostfix.clone();
 		ArrayDeque<ArrayDeque<String>> stack = new ArrayDeque<ArrayDeque<String>>();
@@ -917,6 +917,7 @@ public class LogicConverter {
 			
 			String next = currPostfix.pollFirst();
 			ArrayDeque<String> add;
+			ArrayDeque<String> add2;
 			ArrayDeque<String> p;
 			ArrayDeque<String> q;
 			HashMap<String, String> literals;
@@ -946,26 +947,47 @@ public class LogicConverter {
 							add.addLast(temp);
 					
 					}
+					add2 = new ArrayDeque<String>();
+					boolean hasTrue2 = false;
 					while(!q.isEmpty()){
 						
 						String temp = q.pollFirst();
 						if(temp.equals("TrueTrueTrue")){
 							
-							if(!hasTrue){
+							if(!hasTrue2){
 								
-								hasTrue = true;
+								hasTrue2 = true;
+								add2 = new ArrayDeque<String>();
 								break;
+								
 							}
 							else
-								add.addLast(temp);
+								add2.addLast(temp);
 							
 						}
 						else
-							add.addLast(temp);
+							add2.addLast(temp);
 					
 					}
-					if(!hasTrue)
+					if(!hasTrue && !hasTrue2){
+						
+						while(!add2.isEmpty())
+							add.addLast(add2.pollFirst());
 						add.addLast("&");
+						
+					}
+					else if(hasTrue && !hasTrue2)
+						add = add2;
+					else if(!hasTrue && hasTrue2)
+						add2 = add;
+					else{
+						
+						while(!add.isEmpty())
+							add.pollFirst();
+						
+						add.addLast("TrueTrueTrue");
+						
+					}
 					stack.addFirst(add);
 					break;
 				case "|":
@@ -975,12 +997,13 @@ public class LogicConverter {
 					int goodP = p.size();
 					add = new ArrayDeque<String>();
 					literals = new HashMap<String, String>();
+					//Use seperateclaussecNF
 					while(!p.isEmpty()){
 					
 						String temp = p.pollFirst();
 						if(temp.equals("TrueTrueTrue")){
 							
-							ArrayDeque<String> add2 = new ArrayDeque<String>();
+							add2 = new ArrayDeque<String>();
 							add2.addLast("TrueTrueTrue");
 							stack.addFirst(add2);
 							break switcheroo;
@@ -992,7 +1015,7 @@ public class LogicConverter {
 								
 								if(literals.containsKey(temp)){
 									
-									ArrayDeque<String> add2 = new ArrayDeque<String>();
+									add2 = new ArrayDeque<String>();
 									add2.addLast("TrueTrueTrue");
 									stack.addFirst(add2);
 									break switcheroo;
@@ -1019,7 +1042,7 @@ public class LogicConverter {
 
 								if(literals.containsKey(temp + "~")){
 									
-									ArrayDeque<String> add2 = new ArrayDeque<String>();
+									add2 = new ArrayDeque<String>();
 									add2.addLast("TrueTrueTrue");
 									stack.addFirst(add2);
 									break switcheroo;
@@ -1051,7 +1074,7 @@ public class LogicConverter {
 						String temp = q.pollFirst();
 						if(temp.equals("TrueTrueTrue")){
 							
-							ArrayDeque<String> add2 = new ArrayDeque<String>();
+							add2 = new ArrayDeque<String>();
 							add2.addLast("TrueTrueTrue");
 							stack.addFirst(add2);
 							break switcheroo;
@@ -1063,7 +1086,7 @@ public class LogicConverter {
 								
 								if(literals.containsKey(temp)){
 									
-									ArrayDeque<String> add2 = new ArrayDeque<String>();
+									add2 = new ArrayDeque<String>();
 									add2.addLast("TrueTrueTrue");
 									stack.addFirst(add2);
 									break switcheroo;
@@ -1090,7 +1113,7 @@ public class LogicConverter {
 
 								if(literals.containsKey(temp + "~")){
 									
-									ArrayDeque<String> add2 = new ArrayDeque<String>();
+									add2 = new ArrayDeque<String>();
 									add2.addLast("TrueTrueTrue");
 									stack.addFirst(add2);
 									break switcheroo;
@@ -1136,6 +1159,110 @@ public class LogicConverter {
 		
 	}
 	
+	public static ArrayDeque<String> simplifyCNF(ArrayDeque<String> postfix){
+		
+		ArrayDeque<String> output = new ArrayDeque<String>();
+		ArrayDeque<ArrayDeque<String>> cnfClauses = seperateClausesCNF(postfix.clone());
+		boolean foundFirstAnd = false;
+		
+		while(!cnfClauses.isEmpty()){
+			
+			ArrayDeque<ArrayDeque<String>> disjClauses = seperateClausesDisjunction(cnfClauses.pollFirst().clone());
+			ArrayDeque<String> add = new ArrayDeque<String>();
+			HashMap<String, String> literals = new HashMap<String, String>();
+			boolean foundFirstOr = false;
+			disj:
+			while(!disjClauses.isEmpty()){
+				
+				ArrayDeque<String> current = disjClauses.pollFirst();
+				//Negated Literal
+				if(current.size() == 2){
+					
+					//If the literal is contained in list of literals already added
+					if(literals.containsKey(current.peekFirst() + "~")){
+						
+						//Skip it
+						
+					}
+					//If the double negation of this literal was already added
+					else if(literals.containsKey(current.peekFirst())){
+						
+						while(!add.isEmpty())
+							add.pollFirst();
+						add.addLast("TrueTrueTrue");
+						break disj;
+						
+					}
+					//The literal is unique
+					else{
+						
+						//Add the literal
+						literals.put(current.peekFirst() + "~", current.peekFirst() + "~");
+						add.addLast(current.pollFirst());
+						//Add the negation
+						add.addLast(current.pollFirst());
+						//If necessary, add the "or"
+						if(foundFirstOr)
+							add.addLast("|");
+						foundFirstOr = true;
+						
+					}
+					
+				}
+				else{
+
+					//If the literal is contained in list of literals already added
+					if(literals.containsKey(current.peekFirst())){
+						
+						//Skip it
+						
+					}
+					//If the negation of this literal was already added
+					else if(literals.containsKey(current.peekFirst() + "~")){
+						
+						while(!add.isEmpty())
+							add.pollFirst();
+						add.addLast("TrueTrueTrue");
+						break disj;
+						
+					}
+					//The literal is unique
+					else{
+						
+						//Add the literal
+						literals.put(current.peekFirst(), current.peekFirst());
+						add.addLast(current.pollFirst());
+						//If necessary, add the "or"
+						if(foundFirstOr)
+							add.addLast("|");
+						foundFirstOr = true;
+						
+					}
+					
+				}
+				
+			}
+			
+			if(!add.peekFirst().equals("TrueTrueTrue")){
+				
+				while(!add.isEmpty())
+					output.addLast(add.pollFirst());
+				
+				if(foundFirstAnd)
+					output.addLast("&");
+				foundFirstAnd = true;
+				
+			}
+			
+		}
+		
+		if(output.isEmpty())
+			output.addLast("TrueTrueTrue");
+		
+		return output;
+		
+	}
+	
 	public static double evaluate(ArrayDeque<String> fact, HashMap<String, Double> model){
 		
 		ArrayDeque<Double> stack = new ArrayDeque<Double>();
@@ -1161,7 +1288,10 @@ public class LogicConverter {
 					stack.addFirst(Math.min(Math.max(p, -1.0*q), Math.max(-1.0*p, q)));
 					break;
 				default:
-					stack.addFirst(model.get(next));
+					if(next.equals("TrueTrueTrue"))
+						stack.addFirst(Double.MAX_VALUE);
+					else
+						stack.addFirst(model.get(next));
 			}
 			
 		}
@@ -1171,7 +1301,7 @@ public class LogicConverter {
 	}
 	
 	public static ArrayList<ArrayDeque<String>> resolve(ArrayDeque<String> fact1, ArrayDeque<String> fact2){
-			
+		
 		if(fact1.peekFirst().equals(fact2.peekFirst()) && (fact1.size() <= 2) && (fact2.size() <= 2) && (fact1.size() != fact2.size()))
 			return null;
 		
@@ -1237,7 +1367,10 @@ public class LogicConverter {
 				
 			}
 			
-			output.add(literals);
+			//Eliminate tautologies
+			literals = simplifyCNF(literals);
+			if(!literals.peekFirst().equals("TrueTrueTrue"))
+				output.add(literals);
 			
 		}
 		
@@ -1291,8 +1424,8 @@ public class LogicConverter {
 			
 		}
 		
-		ArrayDeque<ArrayDeque<String>> clauses2 = seperateClausesCNF(stack.pollFirst());
-		ArrayDeque<ArrayDeque<String>> clauses1 = seperateClausesCNF(stack.pollFirst());
+		ArrayDeque<ArrayDeque<String>> clauses2 = seperateClausesDisjunction(stack.pollFirst());
+		ArrayDeque<ArrayDeque<String>> clauses1 = seperateClausesDisjunction(stack.pollFirst());
 		
 		while(!clauses1.isEmpty())
 			clauses.addLast(clauses1.pollFirst());
@@ -1305,12 +1438,13 @@ public class LogicConverter {
 	
 	public static String convertInfix(ArrayDeque<String> postfix){
 		
+		ArrayDeque<String> postfixClone = postfix.clone();
 		ArrayDeque<String> stack = new ArrayDeque<String>();
-		while(!postfix.isEmpty()){
+		while(!postfixClone.isEmpty()){
 			
 			String p;
 			String q;
-			String next = postfix.pollFirst();
+			String next = postfixClone.pollFirst();
 			switch(next){
 				case "~":
 					String operand = stack.pollFirst();
@@ -1365,6 +1499,15 @@ public class LogicConverter {
 		}
 		
 		return value;
+		
+	}
+	
+	public static boolean equals(ArrayDeque<String> fact1, ArrayDeque<String> fact2){
+		
+		String[] fact1Arr = fact1.toArray(new String[0]);
+		String[] fact2Arr = fact2.toArray(new String[0]);
+		
+		return Arrays.equals(fact1Arr, fact2Arr);
 		
 	}
 	
